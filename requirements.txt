@@ -1,0 +1,13 @@
+# pqc_sandbox core
+click>=8.1
+rich>=13.0
+jinja2>=3.1
+psutil>=5.9
+cryptography>=41.0
+requests>=2.31
+
+# qs_platform API
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.0
+python-multipart>=0.0.9
