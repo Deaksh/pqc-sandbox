@@ -699,3 +699,83 @@ def scan_git(
     if ci:
         exit_codes = {"GO": 0, "CAUTION": 1, "BLOCKED": 2}
         sys.exit(exit_codes.get(result.verdict, 0))
+
+
+# ── simulate command ──────────────────────────────────────────────────────────
+
+@main.command("simulate")
+@click.argument("endpoint")
+@click.option("--port",    "-p",  default=443, show_default=True,
+              help="TLS port to probe.")
+@click.option("--kem",     default="ML-KEM-768", show_default=True,
+              help="PQC KEM algorithm to simulate.")
+@click.option("--sig",     default="ML-DSA-44",  show_default=True,
+              help="PQC signature algorithm to simulate.")
+@click.option("--no-hybrid", "no_hybrid", is_flag=True, default=False,
+              help="Simulate PQC-only (no classical hybrid). Not recommended.")
+@click.option("--json",    "output_json", is_flag=True, default=False,
+              help="Output JSON instead of terminal report.")
+@click.option("--out",     default=None, type=click.Path(),
+              help="Write report to file (JSON if --json, else HTML).")
+@click.option("--ci",      is_flag=True, default=False,
+              help="CI mode: exit 0=GO, 1=CAUTION, 2=BLOCKED.")
+@click.option("--timeout", default=8.0, show_default=True, type=float,
+              help="Connection timeout in seconds.")
+def simulate_cmd(endpoint, port, kem, sig, no_hybrid, output_json, out, ci, timeout):
+    """
+    Simulate a PQC migration on ENDPOINT and prove what will break.
+
+    Probes the live TLS endpoint, then replays the handshake with PQC
+    algorithm sizes to show exactly which components will fail in production
+    — and hands you the fix.
+
+    \b
+    Examples:
+      pqc-sandbox simulate api.mybank.com
+      pqc-sandbox simulate api.mybank.com --kem ML-KEM-1024 --sig ML-DSA-65
+      pqc-sandbox simulate internal.service:8443 --json --ci
+    """
+    from pqc_sandbox.simulation.tls_sim import simulate_endpoint
+    from pqc_sandbox.simulation.report import render_terminal, render_json
+
+    hybrid = not no_hybrid
+
+    console.print()
+    console.print(f"  [dim]Probing[/dim] [bold]{endpoint}:{port}[/bold] [dim]…[/dim]")
+
+    try:
+        report = simulate_endpoint(
+            hostname=endpoint,
+            port=port,
+            target_kem=kem,
+            target_sig=sig,
+            hybrid=hybrid,
+            timeout=timeout,
+        )
+    except Exception as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        if ci:
+            sys.exit(2)
+        return
+
+    if output_json:
+        json_str = render_json(report)
+        if out:
+            from pathlib import Path as _Path
+            _Path(out).write_text(json_str)
+            console.print(f"[green]✓[/green] JSON → [cyan]{out}[/cyan]")
+        else:
+            print(json_str)
+    else:
+        render_terminal(report, console)
+        if out:
+            # Write HTML version
+            from pathlib import Path as _Path
+            from pqc_sandbox.simulation.html_report import render_html
+            html = render_html(report)
+            _Path(out).write_text(html)
+            console.print(f"[green]✓[/green] HTML report → [cyan]{out}[/cyan]")
+
+    if ci:
+        exit_codes = {"GO": 0, "CAUTION": 1, "BLOCKED": 2}
+        sys.exit(exit_codes.get(report.verdict, 0))

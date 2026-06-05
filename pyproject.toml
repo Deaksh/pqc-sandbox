@@ -41,8 +41,8 @@ dev = ["pytest>=7.4", "pytest-cov", "black", "mypy", "ruff"]
 pqc-sandbox = "pqc_sandbox.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/pqc-sandbox/pqc-sandbox"
-Issues = "https://github.com/pqc-sandbox/pqc-sandbox/issues"
+Homepage = "https://github.com/Deaksh/pqc-sandbox"
+Issues = "https://github.com/Deaksh/pqc-sandbox/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
