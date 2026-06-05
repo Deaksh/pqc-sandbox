@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+*.egg
+.eggs/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.node
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+
+# Test artifacts
+test_crypto_bad.py
+test_app.py
+/tmp/
+
+# Editor
+.vscode/
+.idea/
+*.swp
