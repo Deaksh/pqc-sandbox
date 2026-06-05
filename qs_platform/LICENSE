@@ -1,0 +1,27 @@
+QUANTUMSHIFT PLATFORM — PROPRIETARY LICENSE
+
+Copyright (c) 2025 QuantumShift Technologies Pvt. Ltd. All rights reserved.
+
+This software and associated documentation files (the "Platform") are
+proprietary and confidential. The Platform is licensed, not sold.
+
+You may not use, copy, modify, merge, publish, distribute, sublicense,
+or sell copies of the Platform without an express written commercial
+license agreement from QuantumShift Technologies Pvt. Ltd.
+
+───────────────────────────────────────────────────────────────────────
+
+OPEN CORE BOUNDARY:
+
+The open-source "pqc_sandbox" package (Apache 2.0) is a separate module
+located in the `pqc_sandbox/` directory at the root of this repository.
+That module is free to use, copy, and modify under the Apache 2.0 licence.
+
+This `platform/` directory contains the proprietary SaaS layer and is
+NOT covered by the Apache 2.0 licence.
+
+───────────────────────────────────────────────────────────────────────
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
+CLAIM, DAMAGES, OR OTHER LIABILITY.

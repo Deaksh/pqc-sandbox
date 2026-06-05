@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantumshift-platform"
+version = "0.1.0"
+description = "QuantumShift B2B compliance platform — proprietary layer on pqc-sandbox"
+requires-python = ">=3.9"
+dependencies = [
+    "pqc-sandbox>=0.1.0",          # open-source core
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.7",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "httpx>=0.27", "pytest-asyncio>=0.23"]
+
+[project.scripts]
+quantumshift-api = "platform.api.main:app"
+
+[tool.setuptools.packages.find]
+where = [".."]
+include = ["platform*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

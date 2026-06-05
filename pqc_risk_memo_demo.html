@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PQC Risk Memo — Demo Organisation — 04 June 2026</title>
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Georgia',serif;font-size:13px;color:#1a1a1a;background:#fff;max-width:900px;margin:0 auto;padding:40px 48px}
+  @media print{body{padding:24px 32px;max-width:100%}}
+  .header{border-bottom:3px solid #1e3a5f;padding-bottom:16px;margin-bottom:24px}
+  .org{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280;margin-bottom:8px}
+  .doc-title{font-size:22px;font-weight:700;color:#1e3a5f;line-height:1.2;margin-bottom:6px}
+  .doc-meta{font-size:11px;color:#6b7280;display:flex;gap:20px;flex-wrap:wrap}
+  .classification{display:inline-block;background:#1e3a5f;color:#fff;font-size:10px;font-weight:700;letter-spacing:.12em;padding:2px 8px;border-radius:2px;text-transform:uppercase}
+  .verdict-box{border-radius:6px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px}
+  .verdict-go{background:#f0fdf4;border:2px solid #16a34a}
+  .verdict-caution{background:#fffbeb;border:2px solid #b45309}
+  .verdict-blocked{background:#fef2f2;border:2px solid #991b1b}
+  .verdict-label{font-size:26px;font-weight:800;letter-spacing:.04em}
+  .verdict-go .verdict-label{color:#16a34a}
+  .verdict-caution .verdict-label{color:#b45309}
+  .verdict-blocked .verdict-label{color:#991b1b}
+  .verdict-text{font-size:13px;line-height:1.5;color:#374151}
+  h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#1e3a5f;margin:20px 0 8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  @media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px 14px}
+  .kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:4px}
+  .kpi-value{font-size:20px;font-weight:800;color:#1e3a5f;line-height:1}
+  .kpi-sub{font-size:10px;color:#6b7280;margin-top:2px}
+  .kpi-bad .kpi-value{color:#c2410c}
+  .kpi-warn .kpi-value{color:#b45309}
+  .kpi-good .kpi-value{color:#16a34a}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+  th{background:#f3f4f6;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#374151;padding:7px 10px;border:1px solid #e5e7eb}
+  td{padding:7px 10px;border:1px solid #e5e7eb;vertical-align:top}
+  .bad{color:#c2410c;font-weight:600}
+  .warn{color:#b45309;font-weight:600}
+  .good{color:#16a34a;font-weight:600}
+  .issue-row-blocked td:first-child{border-left:3px solid #c2410c}
+  .issue-row-caution td:first-child{border-left:3px solid #b45309}
+  .action-table td:first-child{font-weight:600;white-space:nowrap}
+  .risk-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+  .risk-critical{background:#fee2e2;color:#991b1b}
+  .risk-high{background:#ffedd5;color:#c2410c}
+  .risk-medium{background:#fef9c3;color:#854d0e}
+  .risk-low{background:#dcfce7;color:#166534}
+  .footer{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;display:flex;justify-content:space-between}
+  .disclaimer{font-size:10px;color:#9ca3af;font-style:italic;margin-top:16px;line-height:1.4}
+  p{margin-bottom:8px;line-height:1.6}
+  ul{padding-left:18px;margin-bottom:8px}
+  li{margin-bottom:3px;line-height:1.5}
+  .highlight{background:#fef9c3;padding:1px 4px;border-radius:2px}
+  .section{margin-bottom:20px}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:600px){.two-col{grid-template-columns:1fr}}
+</style>
+
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="org">Demo Organisation</div>
+  <div class="doc-title">Post-Quantum Cryptography Migration Risk Assessment</div>
+  <div style="margin:8px 0"><span class="classification">CONFIDENTIAL — INTERNAL</span></div>
+  <div class="doc-meta">
+    <span>Reference: <strong>PQC-20260604-001</strong></span>
+    <span>System: <strong>Web API Server (ECDSA-P256 → ML-DSA-44)</strong></span>
+    <span>Date: <strong>04 June 2026</strong></span>
+    <span>Prepared by: <strong>pqc-sandbox demo</strong></span>
+    <span>Regulatory scope: <strong>RBI, CERT-In</strong></span>
+  </div>
+</div>
+
+<!-- VERDICT -->
+<div class="verdict-box verdict-caution">
+  <div>
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280;margin-bottom:4px">Overall Verdict</div>
+    <div class="verdict-label">CAUTION</div>
+  </div>
+  <div class="verdict-text">
+    <strong>Risk Level: <span class="risk-pill risk-medium">MEDIUM</span></strong><br>
+    Migration requires careful planning and compatibility remediation before cut-over.<br>Target migration deadline: <strong>Q4 2026</strong>
+  </div>
+</div>
+
+<!-- EXECUTIVE SUMMARY -->
+<div class="section">
+  <h2>1. Executive Summary</h2>
+  <p>
+    This memo presents the findings of a post-quantum cryptography (PQC) migration impact
+    simulation conducted on <strong>Web API Server (ECDSA-P256 → ML-DSA-44)</strong>. The simulation used the
+    <em>pqc-sandbox</em> tool, running entirely on-premises with no data transmitted externally.
+  </p>
+  <p>
+    The National Institute of Standards and Technology (NIST) finalised three post-quantum
+    cryptographic standards in August 2024: <strong>ML-KEM (FIPS 203)</strong>,
+    <strong>ML-DSA (FIPS 204)</strong>, and <strong>SLH-DSA (FIPS 205)</strong>. Cryptographically
+    relevant quantum computers — capable of breaking current RSA and elliptic-curve encryption using
+    Shor's algorithm — are projected by major intelligence agencies to arrive
+    <span class="highlight">between 2030 and 2035</span>. The "harvest now, decrypt later" (HNDL)
+    threat means <strong>data encrypted today is at risk immediately</strong>.
+  </p>
+  <p>
+    The simulation identified a <strong>MEDIUM risk</strong> migration posture for
+    Web API Server (ECDSA-P256 → ML-DSA-44). Specific cost, compatibility, and regulatory findings follow.
+  </p>
+</div>
+
+<!-- KPI STRIP -->
+<div class="kpi-grid"><div class="kpi kpi-warn"><div class="kpi-label">Migration Difficulty</div><div class="kpi-value">38</div><div class="kpi-sub">/ 100 — MODERATE</div></div><div class="kpi kpi-warn"><div class="kpi-label">Payload Size Increase</div><div class="kpi-value">17×</div><div class="kpi-sub">larger signatures/ciphertexts</div></div><div class="kpi kpi-good"><div class="kpi-label">Crypto Op Slowdown</div><div class="kpi-value">0.5×</div><div class="kpi-sub">vs current algorithm</div></div><div class="kpi kpi-warn"><div class="kpi-label">Compatibility Issues</div><div class="kpi-value">2</div><div class="kpi-sub">0 BLOCKED, 2 CAUTION</div></div></div>
+
+<!-- TECHNICAL FINDINGS -->
+<div class="section">
+  <h2>2. Technical Impact Findings</h2>
+  <p>The following table summarises the measured impact of replacing current algorithms with their
+     NIST-recommended PQC equivalents:</p>
+  
+<table>
+  <thead><tr><th>Domain</th><th>Current Algorithm</th><th>Recommended PQC</th><th>Size Impact</th><th>Performance Impact</th></tr></thead>
+  <tbody>
+<tr>
+  <td>Key Exchange (KEM)</td>
+  <td>ECDH-P256</td>
+  <td>ML-KEM-768 (NIST FIPS 203)</td>
+  <td class="warn">Ciphertext: 17× larger<br>
+      (65 B → 1.1 KB)</td>
+  <td class="good">Op: 0.5× slower</td>
+</tr></tbody>
+</table>
+
+  <p><strong>Hybrid mode assessment:</strong> A hybrid key exchange (classical + PQC in parallel) adds <strong>+1096 bytes</strong> of wire overhead per handshake. This is the recommended transitional approach and is backward-compatible with classical-only peers.</p>
+</div>
+
+<!-- COMPATIBILITY ISSUES -->
+<div class="section">
+  <h2>3. Compatibility Blockers &amp; Risks</h2>
+  
+<table>
+  <thead><tr><th>Risk Level</th><th>Category</th><th>Issue</th><th>Recommended Mitigation</th></tr></thead>
+  <tbody><tr class="issue-row-caution"><td><span class="risk-pill risk-high">HIGH</span></td><td>MTU</td><td><strong>ML-KEM ClientHello (1529 B) exceeds MTU (1500 B)</strong><br><span style="color:#6b7280;font-size:11px">The TLS 1.3 ClientHello with ML-KEM-768 key share requires ~1529 bytes but your MTU is 1500 bytes. IP fragmentation or TCP segmentation will kick in, adding latency. Some middleboxes drop oversized initial packets.</span></td><td style="font-size:11px;color:#374151">Enable TCP MSS clamping. Set MTU ≥ 1600 bytes or use QUIC (MTU probing built-in). Consider ML-KEM-512 (ClientHello ~1 KB) instead of ML-KEM-768/1024.</td></tr><tr class="issue-row-caution"><td><span class="risk-pill risk-high">HIGH</span></td><td>MTU</td><td><strong>CertificateVerify message (2,470 B) spans multiple MTU packets</strong><br><span style="color:#6b7280;font-size:11px">The TLS 1.3 CertificateVerify message with ML-DSA-44 signature is ~2,470 bytes — 2 packets at MTU 1500. This is expected but adds one round-trip on lossy links.</span></td><td style="font-size:11px;color:#374151">Acceptable for most deployments. Use Jumbo Frames (MTU 9000) in datacenter settings.</td></tr></tbody>
+</table>
+</div>
+
+<!-- REGULATORY EXPOSURE -->
+
+<div class="section">
+  <h2>Regulatory Exposure</h2>
+  <table>
+    <thead><tr><th>Framework</th><th>Relevance</th><th>Exposure Level</th><th>Required Action</th></tr></thead>
+    <tbody>
+<tr>
+  <td><strong>RBI Cybersecurity Framework (2016)<br>Master Direction on IT (2023)</strong></td>
+  <td>Banks must implement controls aligned to CERT-In and NIST standards. RBI circular RBI/2023-24/73 references quantum-resistant cryptography preparedness for Regulated Entities.</td>
+  <td><span class="risk-pill risk-medium">MEDIUM</span></td>
+  <td>Evidence of migration roadmap required in annual IT audit submission</td>
+</tr>
+<tr>
+  <td><strong>CERT-In Directions (April 2022 &amp; subsequent)</strong></td>
+  <td>CERT-In mandates 6-hour incident reporting and requires organisations to maintain audit trails of cryptographic events. Post-quantum vulnerabilities must be included in threat modelling.</td>
+  <td><span class="risk-pill risk-medium">MEDIUM</span></td>
+  <td>Update threat register and inform CISO for inclusion in annual CERT-In report</td>
+</tr></tbody>
+  </table>
+</div>
+
+<!-- BUSINESS RISK NARRATIVE -->
+<div class="section">
+  <h2>5. Business Risk Assessment</h2>
+  <div class="two-col">
+    <div>
+      <p><strong>Operational risk:</strong> If migration is deferred and a cryptographically relevant quantum computer emerges, all historical data encrypted under current algorithms becomes recoverable by adversaries. Sensitive customer data, transaction records, and proprietary information face retroactive exposure.</p>
+      <p><strong>Regulatory risk:</strong> Multiple Indian financial regulators (RBI, SEBI) and CERT-In have issued advisories on quantum preparedness. Non-compliance with future PQC mandates may result in enforcement action, audit findings, or loss of operating permissions.</p>
+    </div>
+    <div>
+      <p><strong>Competitive risk:</strong> Enterprises that delay PQC migration until mandated will face compressed timelines, skills shortages, and higher vendor costs. Early movers will have completed the transition on their terms, with tested rollback plans.</p>
+      <p><strong>Third-party / supply chain risk:</strong> Migration is only as strong as the weakest link. APIs, HSMs, certificate authorities, and SaaS vendors must also support PQC. Vendor qualification takes 6–18 months and should begin immediately.</p>
+    </div>
+  </div>
+</div>
+
+<!-- RECOMMENDED ACTIONS -->
+<div class="section">
+  <h2>6. Recommended Actions</h2>
+  
+<table class="action-table">
+  <thead><tr><th>Priority</th><th>Action Required</th><th>Owner</th><th>Target Date</th></tr></thead>
+  <tbody><tr class="action-table"><td>P1 — Critical</td><td>Inventory all cryptographic assets using CBOM tooling</td><td>Security Engineering</td><td>Now</td></tr><tr class="action-table"><td>P2 — High</td><td>Pilot hybrid PQC deployment on non-production environment</td><td>DevOps / Platform</td><td>Sprint 1–2</td></tr><tr class="action-table"><td>P2 — High</td><td>Engage TLS/PKI vendors to confirm PQC certificate support</td><td>IT / Procurement</td><td>30 days</td></tr><tr class="action-table"><td>P3 — Medium</td><td>Update cryptographic standards policy to include NIST FIPS 203/204/205</td><td>Governance / Risk</td><td>60 days</td></tr><tr class="action-table"><td>P3 — Medium</td><td>Define migration timeline aligned to regulatory deadlines</td><td>CISO / CTO</td><td>Q4 2026</td></tr></tbody>
+</table>
+</div>
+
+<!-- DISCLAIMER -->
+<p class="disclaimer">
+  This assessment was generated by pqc-sandbox (open-source, Apache 2.0 licence). All simulation
+  was performed locally on the issuing organisation's infrastructure. No data was transmitted to
+  external parties. Performance figures are derived from NIST reference implementation benchmarks
+  and may vary on specific hardware. This document does not constitute legal or regulatory advice.
+  Consult your legal counsel and compliance team before making decisions based on this assessment.
+</p>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>Demo Organisation · CONFIDENTIAL — INTERNAL</span>
+  <span>Ref: PQC-20260604-001 · 04 June 2026</span>
+  <span>Generated by pqc-sandbox · Zero telemetry · Apache 2.0</span>
+</div>
+
+</body>
+</html>
