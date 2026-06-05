@@ -33,8 +33,9 @@ app.add_middleware(
         "http://localhost:3001",
         "http://localhost:3002",
         "https://app.quantumshift.io",
+        "https://pqc-sandbox.vercel.app",
     ],
-    allow_origin_regex=r"http://localhost:\d+",   # covers any local port
+    allow_origin_regex=r"(http://localhost:\d+|https://.*\.vercel\.app)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
