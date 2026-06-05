@@ -66,7 +66,7 @@ export default function ReportsPage() {
   const [jurisdiction, setJurisdiction] = useState<string>("All");
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/v1/reports/frameworks")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"}/api/v1/reports/frameworks`)
       .then(r => r.json()).then(setFrameworks).catch(() => {});
     api.listReports().catch(() => []).then(setReports);
   }, []);

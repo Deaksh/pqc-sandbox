@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, HelpCircle, RefreshCw, Plus, ExternalLink, Loader2 } from "lucide-react";
 import clsx from "clsx";
 
-const BASE = "http://localhost:8080";
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 interface VendorRisk {
   id: string; name: string; endpoint: string; category: string;
