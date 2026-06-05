@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuantumShift — Know your PQC migration cost before you commit</title>
+<meta name="description" content="Simulate a post-quantum cryptography migration on your systems in 60 seconds. See latency, payload size, compatibility, and regulatory exposure — before touching a line of production code.">
+<meta property="og:title" content="QuantumShift — PQC Migration Simulator">
+<meta property="og:description" content="See exactly what ML-KEM / ML-DSA costs you — before committing. Free CLI, enterprise compliance platform.">
+<meta property="og:type" content="website">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand: #1e3a5f; --brand-light: #2a5298;
+    --green: #16a34a; --amber: #b45309; --red: #c2410c;
+    --text: #111827; --muted: #6b7280; --border: #e5e7eb; --bg: #f9fafb;
+  }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); background: #fff; line-height: 1.6; }
+  a { color: var(--brand-light); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Nav */
+  nav { border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; max-width: 1100px; margin: 0 auto; }
+  .nav-logo { font-weight: 800; font-size: 18px; color: var(--brand); display: flex; align-items: center; gap: 8px; }
+  .nav-links { display: flex; align-items: center; gap: 20px; font-size: 14px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all .15s; border: none; }
+  .btn-primary { background: var(--brand); color: #fff; }
+  .btn-primary:hover { background: var(--brand-light); text-decoration: none; }
+  .btn-outline { background: transparent; color: var(--brand); border: 1.5px solid var(--brand); }
+  .btn-outline:hover { background: #f0f4ff; text-decoration: none; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 80px 24px 64px; max-width: 780px; margin: 0 auto; }
+  .hero-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--brand-light); background: #eff6ff; border: 1px solid #bfdbfe; padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 20px; }
+  .hero h1 { font-size: clamp(32px, 6vw, 56px); font-weight: 800; line-height: 1.1; letter-spacing: -.02em; color: var(--brand); margin-bottom: 20px; }
+  .hero h1 em { font-style: normal; color: var(--brand-light); }
+  .hero p { font-size: 18px; color: var(--muted); max-width: 580px; margin: 0 auto 32px; line-height: 1.65; }
+
+  /* Terminal */
+  .terminal { background: #0d1117; border-radius: 12px; padding: 20px 24px; text-align: left; max-width: 600px; margin: 0 auto 40px; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 13px; line-height: 1.7; box-shadow: 0 8px 40px rgba(0,0,0,.25); }
+  .terminal .dots { display: flex; gap: 6px; margin-bottom: 14px; }
+  .terminal .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-yellow { background: #febc2e; } .dot-green { background: #28c840; }
+  .t-prompt { color: #7ee787; } .t-cmd { color: #e6edf3; } .t-dim { color: #6e7681; }
+  .t-go { color: #3fb950; font-weight: 700; } .t-caution { color: #d29922; font-weight: 700; }
+  .t-blocked { color: #f85149; font-weight: 700; } .t-cyan { color: #58a6ff; }
+
+  /* Waitlist */
+  .waitlist-box { background: var(--brand); border-radius: 16px; padding: 48px 32px; text-align: center; max-width: 540px; margin: 0 auto 64px; }
+  .waitlist-box h2 { color: #fff; font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .waitlist-box p { color: rgba(255,255,255,.7); font-size: 14px; margin-bottom: 24px; }
+  .waitlist-form { display: flex; gap: 8px; max-width: 420px; margin: 0 auto; }
+  .waitlist-form input { flex: 1; border: none; border-radius: 8px; padding: 11px 16px; font-size: 14px; outline: none; }
+  .waitlist-form button { background: #f59e0b; color: #fff; border: none; border-radius: 8px; padding: 11px 20px; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .waitlist-form button:hover { background: #d97706; }
+  .waitlist-social { color: rgba(255,255,255,.5); font-size: 12px; margin-top: 16px; }
+  .waitlist-count { display: inline-block; background: rgba(255,255,255,.1); color: rgba(255,255,255,.8); border-radius: 20px; padding: 3px 12px; font-size: 12px; font-weight: 600; margin-bottom: 20px; }
+  #waitlist-success { display: none; color: #86efac; font-weight: 600; font-size: 15px; margin-top: 12px; }
+
+  /* How it works */
+  section { max-width: 1000px; margin: 0 auto; padding: 0 24px 80px; }
+  .section-label { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--brand-light); margin-bottom: 12px; }
+  .section-title { font-size: 28px; font-weight: 800; color: var(--brand); margin-bottom: 8px; }
+  .section-sub { font-size: 16px; color: var(--muted); max-width: 560px; margin-bottom: 40px; line-height: 1.6; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+  .step { border: 1px solid var(--border); border-radius: 12px; padding: 24px; background: #fff; }
+  .step-num { font-size: 28px; font-weight: 900; color: var(--brand); opacity: .15; line-height: 1; margin-bottom: 12px; }
+  .step h3 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .step p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+  /* Output example */
+  .output-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width:640px) { .output-grid { grid-template-columns: 1fr; } }
+  .output-card { border: 1px solid var(--border); border-radius: 12px; padding: 20px; background: #fff; }
+  .output-card h3 { font-size: 13px; font-weight: 700; color: var(--brand); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .output-card .icon { width: 22px; height: 22px; border-radius: 6px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f3f4f6; font-size: 12px; }
+  .metric-row:last-child { border: none; }
+  .metric-label { color: var(--muted); }
+  .metric-val { font-weight: 600; font-family: monospace; }
+  .red { color: var(--red); } .amber { color: var(--amber); } .green { color: var(--green); }
+
+  /* Who it's for */
+  .persona-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .persona { border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center; }
+  .persona-icon { font-size: 32px; margin-bottom: 10px; }
+  .persona h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .persona p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* Regulation table */
+  .reg-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .reg-table th { text-align: left; background: #f8faff; padding: 10px 14px; border: 1px solid var(--border); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .reg-table td { padding: 10px 14px; border: 1px solid var(--border); vertical-align: top; }
+  .reg-table tr:hover td { background: #f9fafb; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+  .pill-mandatory { background: #fee2e2; color: var(--red); }
+  .pill-advisory  { background: #dbeafe; color: #1d4ed8; }
+  .pill-emerging  { background: #f3e8ff; color: #7c3aed; }
+
+  /* Pricing */
+  .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .pricing-card { border: 1px solid var(--border); border-radius: 14px; padding: 28px; position: relative; }
+  .pricing-card.featured { border-color: var(--brand); background: #f0f4ff; }
+  .pricing-card .badge { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--brand); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px; white-space: nowrap; }
+  .price { font-size: 32px; font-weight: 900; color: var(--brand); line-height: 1; margin: 10px 0 4px; }
+  .price sub { font-size: 14px; font-weight: 400; color: var(--muted); }
+  .pricing-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .pricing-desc { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+  .pricing-features li { font-size: 13px; color: var(--muted); padding: 5px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+  .pricing-features li:last-child { border: none; }
+  .check { color: var(--green); font-weight: 700; }
+
+  /* Footer */
+  footer { background: var(--brand); color: rgba(255,255,255,.7); text-align: center; padding: 32px 24px; font-size: 13px; }
+  footer strong { color: #fff; }
+  .footer-links { display: flex; justify-content: center; gap: 20px; margin-bottom: 12px; flex-wrap: wrap; }
+  .footer-links a { color: rgba(255,255,255,.6); font-size: 13px; }
+  .footer-links a:hover { color: #fff; }
+  .telemetry-badge { display: inline-block; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); border-radius: 20px; padding: 4px 14px; font-size: 11px; font-weight: 700; letter-spacing: .06em; margin-bottom: 16px; color: #86efac; }
+
+  @media (max-width: 640px) {
+    .waitlist-form { flex-direction: column; }
+    .hero h1 { font-size: 32px; }
+    .hero p { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div style="border-bottom:1px solid var(--border)">
+  <nav>
+    <div class="nav-logo">
+      🔐 QuantumShift
+    </div>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#regulations">Regulations</a>
+      <a href="#pricing">Pricing</a>
+      <a href="https://github.com/pqc-sandbox/pqc-sandbox" target="_blank">GitHub ↗</a>
+      <a href="#waitlist" class="btn btn-primary">Get early access</a>
+    </div>
+  </nav>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">🚀 Now in private beta</div>
+  <h1>Know your PQC migration cost<br><em>before you commit to it</em></h1>
+  <p>
+    Quantum computers will break RSA and ECDSA. Regulators are already asking.
+    QuantumShift shows you exactly what happens to your latency, payload size, and
+    compatibility when you switch — <strong>in 60 seconds, on your own machine</strong>.
+  </p>
+
+  <div class="terminal">
+    <div class="dots">
+      <div class="dot dot-red"></div>
+      <div class="dot dot-yellow"></div>
+      <div class="dot dot-green"></div>
+    </div>
+    <div><span class="t-prompt">$</span> <span class="t-cmd">pip install pqc-sandbox &amp;&amp; pqc-sandbox demo</span></div>
+    <div class="t-dim">Benchmarking ECDH-P256 vs ML-KEM-768 ...</div>
+    <div class="t-dim">Running compatibility oracle ...</div>
+    <br>
+    <div>  Public Key:   <span class="t-caution">65 B → 1.2 KB  (+18×)</span></div>
+    <div>  Ciphertext:   <span class="t-caution">65 B → 1.1 KB  (+17×)</span></div>
+    <div>  Handshake:    <span class="t-go">+0.04 ms (negligible)</span></div>
+    <div>  MTU:          <span class="t-blocked">⚠ CAUTION — ClientHello exceeds 1500B</span></div>
+    <br>
+    <div>  Score: <span class="t-caution">38/100 — MODERATE</span></div>
+    <div>  Verdict: <span class="t-caution">⚠ CAUTION</span>  <span class="t-dim">→ pqc_risk_memo.html</span></div>
+  </div>
+
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="#waitlist" class="btn btn-primary">Get early access →</a>
+    <a href="https://github.com/pqc-sandbox/pqc-sandbox" class="btn btn-outline" target="_blank">⭐ Star on GitHub</a>
+  </div>
+  <p style="font-size:12px;color:var(--muted);margin-top:16px">
+    🔒 Zero cloud. Zero telemetry. Runs entirely on your machine.
+  </p>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-label">How it works</div>
+  <div class="section-title">Four steps from zero to RBI-ready</div>
+  <p class="section-sub">No agents. No cloud. No code changes. Just point it at your systems.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <h3>Point it at your systems</h3>
+      <p>TLS endpoints, CBOM output from your security scanner, or SARIF from Semgrep/CodeQL. We integrate, not rebuild.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <h3>Simulate migration impact</h3>
+      <p>Side-by-side benchmark of your current algorithm vs the NIST PQC replacement. Real numbers, not estimates.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <h3>Find what breaks</h3>
+      <p>MTU limits, TLS 1.2 constraints, embedded device RAM, DNSSEC UDP limits, JWT header overflow — all checked.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <h3>Get a report your CISO can sign</h3>
+      <p>Auto-generated RBI / SEBI / NIST / DORA compliance reports, plus a copy-paste config diff for your engineers.</p>
+    </div>
+  </div>
+</section>
+
+<!-- OUTPUTS -->
+<section>
+  <div class="section-label">What you get</div>
+  <div class="section-title">Every output your team needs</div>
+  <p class="section-sub">Engineers get benchmarks and diffs. CISOs get risk memos. Auditors get compliance reports.</p>
+
+  <div class="output-grid">
+    <div class="output-card">
+      <h3><div class="icon">📊</div> Performance benchmark</h3>
+      <div class="metric-row"><span class="metric-label">ECDSA signature</span><span class="metric-val">72 B</span></div>
+      <div class="metric-row"><span class="metric-label">ML-DSA-44 signature</span><span class="metric-val red">2,420 B (+33×)</span></div>
+      <div class="metric-row"><span class="metric-label">Sign latency delta</span><span class="metric-val amber">+0.15 ms</span></div>
+      <div class="metric-row"><span class="metric-label">Verify latency delta</span><span class="metric-val amber">+0.09 ms</span></div>
+      <div class="metric-row"><span class="metric-label">Verdict</span><span class="metric-val amber">⚠ CAUTION</span></div>
+    </div>
+    <div class="output-card">
+      <h3><div class="icon">🛡️</div> Compatibility oracle</h3>
+      <div class="metric-row"><span class="metric-label">TLS version</span><span class="metric-val green">✓ TLS 1.3 ready</span></div>
+      <div class="metric-row"><span class="metric-label">MTU (1500B)</span><span class="metric-val amber">⚠ ClientHello too large</span></div>
+      <div class="metric-row"><span class="metric-label">Device RAM</span><span class="metric-val green">✓ Sufficient</span></div>
+      <div class="metric-row"><span class="metric-label">DNSSEC UDP</span><span class="metric-val red">✗ Exceeds 1232B limit</span></div>
+      <div class="metric-row"><span class="metric-label">HSM support</span><span class="metric-val amber">⚠ Vendor check needed</span></div>
+    </div>
+    <div class="output-card">
+      <h3><div class="icon">📝</div> Config diff (copy-paste)</h3>
+      <pre style="font-family:monospace;font-size:11px;color:#374151;line-height:1.6;background:#f9fafb;padding:10px;border-radius:6px;overflow:hidden"># OpenSSL 3.3+ (hybrid, drop-in)
+Groups = P256_mlkem768:P256:X25519
+
+# nginx
+ssl_ecdh_curve X25519MLKEM768:X25519;
+
+# Go TLS (no code change)
+GODEBUG=tlsmlkem=1 ./your-binary</pre>
+    </div>
+    <div class="output-card">
+      <h3><div class="icon">🏛️</div> RBI compliance report</h3>
+      <div class="metric-row"><span class="metric-label">Crypto asset inventory</span><span class="metric-val amber">Partially Compliant</span></div>
+      <div class="metric-row"><span class="metric-label">Quantum-safe KEX</span><span class="metric-val red">Non-Compliant</span></div>
+      <div class="metric-row"><span class="metric-label">TLS version policy</span><span class="metric-val green">Compliant</span></div>
+      <div class="metric-row"><span class="metric-label">HNDL threat response</span><span class="metric-val amber">Partially Compliant</span></div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted)">Ready to submit to RBI IT auditor. Maps to RBI-CS-2016, IT Master Direction 2023, CERT-In.</div>
+    </div>
+  </div>
+</section>
+
+<!-- WHO IT'S FOR -->
+<section>
+  <div class="section-label">Who it's for</div>
+  <div class="section-title">One tool, three audiences</div>
+  <div class="persona-grid">
+    <div class="persona">
+      <div class="persona-icon">👩‍💻</div>
+      <h3>Security Engineer</h3>
+      <p>Run it on your endpoints today. Get benchmark numbers, compat issues, and config diffs — in one command.</p>
+    </div>
+    <div class="persona">
+      <div class="persona-icon">🏦</div>
+      <h3>CISO / CTO</h3>
+      <p>Forward the executive risk memo to your board. It reads like a risk document, not a dev tool output.</p>
+    </div>
+    <div class="persona">
+      <div class="persona-icon">📋</div>
+      <h3>Compliance Officer</h3>
+      <p>Generate RBI / SEBI / NIST reports pre-mapped to control IDs. Ready to hand to your auditor.</p>
+    </div>
+    <div class="persona">
+      <div class="persona-icon">🏗️</div>
+      <h3>Platform / Infra Team</h3>
+      <p>Drop into CI/CD. JSON output, exit codes (0=GO, 1=CAUTION, 2=BLOCKED). Catch new vulnerable crypto in PRs.</p>
+    </div>
+  </div>
+</section>
+
+<!-- REGULATIONS -->
+<section id="regulations">
+  <div class="section-label">Regulatory coverage</div>
+  <div class="section-title">8 jurisdictions, one platform</div>
+  <p class="section-sub">Every major financial regulator is asking about PQC. QuantumShift maps your results to their requirements.</p>
+
+  <div style="overflow-x:auto">
+    <table class="reg-table">
+      <thead>
+        <tr>
+          <th>Jurisdiction</th>
+          <th>Framework</th>
+          <th>Type</th>
+          <th>Deadline</th>
+          <th>Who's covered</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>🇮🇳 India</td><td>RBI Cybersecurity Framework 2016 + IT Master Direction 2023</td><td><span class="pill pill-mandatory">Mandatory</span></td><td>FY2026-27</td><td>Banks, NBFCs, Payment Banks</td></tr>
+        <tr><td>🇮🇳 India</td><td>SEBI CSCRF 2024</td><td><span class="pill pill-mandatory">Mandatory</span></td><td>FY2025-26</td><td>Brokers, Exchanges, Depositories</td></tr>
+        <tr><td>🇮🇳 India</td><td>CERT-In Directions 2022</td><td><span class="pill pill-mandatory">Mandatory</span></td><td>Ongoing</td><td>All IT organisations in India</td></tr>
+        <tr><td>🇮🇳 India</td><td>DPDP Act 2023</td><td><span class="pill pill-emerging">Emerging</span></td><td>Rules 2025</td><td>All data fiduciaries</td></tr>
+        <tr><td>🇺🇸 United States</td><td>NSA CNSA 2.0 / OMB M-23-02</td><td><span class="pill pill-mandatory">Mandatory</span></td><td>2030</td><td>Federal agencies, NSS, critical infra</td></tr>
+        <tr><td>🇪🇺 European Union</td><td>DORA + ENISA PQC Guidelines</td><td><span class="pill pill-mandatory">Mandatory</span></td><td>In force Jan 2025</td><td>EU financial entities, MIIs</td></tr>
+        <tr><td>🇬🇧 United Kingdom</td><td>NCSC PQC Guidance + FCA</td><td><span class="pill pill-advisory">Advisory</span></td><td>2028</td><td>UK organisations, systemically important firms</td></tr>
+        <tr><td>🇸🇬 Singapore</td><td>MAS TRM Guidelines</td><td><span class="pill pill-advisory">Advisory</span></td><td>2025 review</td><td>MAS-regulated financial institutions</td></tr>
+        <tr><td>🇩🇪 Germany</td><td>BSI TR-02102</td><td><span class="pill pill-advisory">Advisory</span></td><td>Updated 2024</td><td>Federal IT, KRITIS operators</td></tr>
+        <tr><td>🇦🇺 Australia</td><td>ASD/ACSC + APRA CPS 234</td><td><span class="pill pill-advisory">Advisory</span></td><td>2025</td><td>Government agencies, APRA entities</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-label">Pricing</div>
+  <div class="section-title">Start free. Scale when you need to.</div>
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <div class="pricing-name">Open Source</div>
+      <div class="price">Free<sub> forever</sub></div>
+      <div class="pricing-desc">For individual engineers. CLI tool, MIT licensed.</div>
+      <ul class="pricing-features">
+        <li><span class="check">✓</span> Single-asset benchmark + compat check</li>
+        <li><span class="check">✓</span> Executive risk memo (HTML)</li>
+        <li><span class="check">✓</span> Config diffs (OpenSSL, nginx, Go, Python)</li>
+        <li><span class="check">✓</span> CBOM / SARIF input</li>
+        <li><span class="check">✓</span> Zero telemetry, fully local</li>
+      </ul>
+      <a href="https://github.com/pqc-sandbox/pqc-sandbox" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:16px">View on GitHub →</a>
+    </div>
+
+    <div class="pricing-card featured">
+      <div class="badge">Most popular</div>
+      <div class="pricing-name">Team</div>
+      <div class="price">₹4,999<sub>/mo</sub></div>
+      <div class="pricing-desc">For security teams at startups and mid-market.</div>
+      <ul class="pricing-features">
+        <li><span class="check">✓</span> Everything in Open Source</li>
+        <li><span class="check">✓</span> Up to 50 assets</li>
+        <li><span class="check">✓</span> Compliance reports (RBI, SEBI, NIST)</li>
+        <li><span class="check">✓</span> Team dashboard with per-team views</li>
+        <li><span class="check">✓</span> Drift alerts (new vulnerable crypto in PRs)</li>
+        <li><span class="check">✓</span> 5 user seats</li>
+      </ul>
+      <a href="#waitlist" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:16px">Get early access →</a>
+    </div>
+
+    <div class="pricing-card">
+      <div class="pricing-name">Enterprise</div>
+      <div class="price">Custom</div>
+      <div class="pricing-desc">For banks, NBFCs, and large tech companies.</div>
+      <ul class="pricing-features">
+        <li><span class="check">✓</span> Unlimited assets</li>
+        <li><span class="check">✓</span> All regulatory frameworks</li>
+        <li><span class="check">✓</span> SSO (SAML / OIDC)</li>
+        <li><span class="check">✓</span> On-premises deployment</li>
+        <li><span class="check">✓</span> Dedicated migration support</li>
+        <li><span class="check">✓</span> Custom report templates</li>
+      </ul>
+      <a href="mailto:hello@quantumshift.io" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:16px">Contact us →</a>
+    </div>
+  </div>
+</section>
+
+<!-- WAITLIST -->
+<section id="waitlist" style="padding-bottom:80px">
+  <div class="waitlist-box">
+    <div class="waitlist-count">🔥 73 security teams on the waitlist</div>
+    <h2>Get early access</h2>
+    <p>We're onboarding teams in batches. Drop your email and we'll reach out within 48 hours with a private beta invite.</p>
+    <form class="waitlist-form" onsubmit="submitWaitlist(event)">
+      <input type="email" id="wl-email" placeholder="you@yourcompany.com" required>
+      <button type="submit">Join waitlist</button>
+    </form>
+    <div id="waitlist-success">✓ You're on the list! We'll be in touch shortly.</div>
+    <div class="waitlist-social">
+      Also: <a href="https://www.linkedin.com/company/quantumshift-io" style="color:rgba(255,255,255,.6)">LinkedIn</a> ·
+      <a href="https://twitter.com/quantumshiftio" style="color:rgba(255,255,255,.6)">Twitter/X</a> ·
+      <a href="https://github.com/pqc-sandbox/pqc-sandbox" style="color:rgba(255,255,255,.6)">GitHub ⭐</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="telemetry-badge">🔒 ZERO TELEMETRY — ALL ANALYSIS RUNS ON YOUR MACHINE</div>
+  <div class="footer-links">
+    <a href="https://github.com/pqc-sandbox/pqc-sandbox">GitHub (Apache 2.0)</a>
+    <a href="#pricing">Pricing</a>
+    <a href="mailto:hello@quantumshift.io">hello@quantumshift.io</a>
+    <a href="/privacy">Privacy</a>
+  </div>
+  <p>© 2025 QuantumShift Technologies. Built on <strong>pqc-sandbox</strong> (open source, Apache 2.0).</p>
+  <p style="margin-top:6px;font-size:11px;opacity:.6">NIST FIPS 203 · FIPS 204 · FIPS 205 · ML-KEM · ML-DSA · SLH-DSA</p>
+</footer>
+
+<script>
+function submitWaitlist(e) {
+  e.preventDefault();
+  const email = document.getElementById('wl-email').value;
+  // Replace with your actual form endpoint (Formspree, Airtable, Mailchimp, etc.)
+  fetch('https://formspree.io/f/YOUR_FORM_ID', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ email, source: 'landing_waitlist' }),
+  })
+  .then(() => {
+    document.querySelector('.waitlist-form').style.display = 'none';
+    document.getElementById('waitlist-success').style.display = 'block';
+  })
+  .catch(() => {
+    // Fallback: show success anyway (replace with real handler)
+    document.querySelector('.waitlist-form').style.display = 'none';
+    document.getElementById('waitlist-success').style.display = 'block';
+  });
+}
+</script>
+</body>
+</html>

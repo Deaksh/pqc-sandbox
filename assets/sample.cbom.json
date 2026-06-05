@@ -1,0 +1,58 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2025-01-01T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "sample-web-app",
+      "version": "2.3.1"
+    }
+  },
+  "components": [
+    {
+      "type": "cryptographic-asset",
+      "name": "TLS Key Exchange",
+      "version": "1.0",
+      "algorithm": "ECDH",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "KE",
+          "curve": "secp256r1",
+          "executionEnvironment": "software-plain-ram"
+        }
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "name": "Server Certificate Signing",
+      "version": "1.0",
+      "algorithm": "ECDSA",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "curve": "secp256r1",
+          "digest": "SHA-256"
+        }
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "name": "JWT Signing (API tokens)",
+      "version": "1.0",
+      "algorithm": "RSA",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "signature",
+          "keySize": 2048,
+          "digest": "SHA-256",
+          "padding": "PKCS1-v1.5"
+        }
+      }
+    }
+  ]
+}

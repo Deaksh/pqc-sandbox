@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pqc-sandbox"
+version = "0.1.0"
+description = "Simulate a post-quantum cryptography migration on your own system before committing to it"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "pqc-sandbox contributors" }]
+keywords = ["post-quantum", "cryptography", "pqc", "ml-kem", "ml-dsa", "slh-dsa", "security", "migration"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Testing",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.1",
+    "rich>=13.0",
+    "jinja2>=3.1",
+    "psutil>=5.9",
+    "cryptography>=41.0",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+oqs = ["liboqs-python>=0.10.0"]
+dev = ["pytest>=7.4", "pytest-cov", "black", "mypy", "ruff"]
+
+[project.scripts]
+pqc-sandbox = "pqc_sandbox.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/pqc-sandbox/pqc-sandbox"
+Issues = "https://github.com/pqc-sandbox/pqc-sandbox/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pqc_sandbox*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.mypy]
+python_version = "3.9"
+strict = false

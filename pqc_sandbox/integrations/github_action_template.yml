@@ -1,0 +1,118 @@
+# pqc-sandbox GitHub Action
+# Drop this file into your repo at .github/workflows/pqc-sandbox.yml
+#
+# What it does:
+#   - Runs on every PR
+#   - Scans changed files for quantum-vulnerable crypto (RSA, ECDSA, ECDH, Ed25519)
+#   - Posts a comment on the PR with findings and recommended PQC replacements
+#   - Fails the check if HIGH severity findings are introduced (configurable)
+#
+# Zero telemetry: all analysis runs inside your own GitHub Actions runner.
+# No data is sent to any external service.
+
+name: PQC Crypto Scan
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  # Also allow manual trigger for full-repo baseline scan
+  workflow_dispatch:
+    inputs:
+      full_scan:
+        description: 'Scan entire repo (not just PR diff)'
+        required: false
+        default: 'false'
+
+permissions:
+  pull-requests: write   # needed to post PR comments
+  contents: read
+
+jobs:
+  pqc-scan:
+    name: Quantum-Vulnerable Crypto Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history needed for git diff
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install pqc-sandbox
+        run: pip install pqc-sandbox --quiet
+
+      - name: Scan PR diff for quantum-vulnerable crypto
+        id: scan
+        run: |
+          pqc-sandbox scan git \
+            --base origin/${{ github.base_ref }} \
+            --json pqc-results.json \
+            --comment pqc-comment.md \
+            ${{ github.event_name == 'workflow_dispatch' && inputs.full_scan == 'true' && '--full' || '' }}
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+        # Don't fail the step here — we want to post the comment first
+        continue-on-error: true
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('pqc-comment.md', 'utf8');
+
+            // Find existing pqc-sandbox comment to update instead of creating duplicates
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('pqc-sandbox')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: comment,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment,
+              });
+            }
+
+      - name: Upload scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pqc-scan-results
+          path: |
+            pqc-results.json
+            pqc-comment.md
+
+      - name: Enforce policy
+        # Fail the workflow if BLOCKED (HIGH severity findings in diff)
+        # Change to `exit_code == 1` to also fail on CAUTION
+        run: |
+          RESULT=$(python3 -c "import json; d=json.load(open('pqc-results.json')); print(d['verdict'])")
+          echo "PQC scan verdict: $RESULT"
+          if [ "$RESULT" = "BLOCKED" ]; then
+            echo "::error::PQC scan BLOCKED — quantum-vulnerable crypto introduced in this PR."
+            echo "See the PR comment for details and recommended fixes."
+            exit 2
+          fi
+          if [ "$RESULT" = "CAUTION" ]; then
+            echo "::warning::PQC scan CAUTION — quantum-vulnerable crypto detected. Review before merging."
+          fi
