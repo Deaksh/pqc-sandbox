@@ -2,10 +2,10 @@
 
 **See exactly what happens to your latency, payload size, CPU, and compatibility when you switch to ML-KEM / ML-DSA / SLH-DSA — in 60 seconds, without changing a line of production code.**
 
-[![PQC Migration: MODERATE](https://img.shields.io/badge/PQC%20Migration-MODERATE-yellow?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDJMMiA3bDEwIDUgMTAtNS0xMC01ek0yIDE3bDEwIDUgMTAtNS0xMC01LTEwIDV6TTIgMTJsMTAgNSAxMC01LTEwLTUtMTAgNXoiIGZpbGw9IndoaXRlIi8+PC9zdmc+)](https://github.com/pqc-sandbox/pqc-sandbox)
+[![PQC Migration: MODERATE](https://img.shields.io/badge/PQC%20Migration-MODERATE-yellow?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDJMMiA3bDEwIDUgMTAtNS0xMC01ek0yIDE3bDEwIDUgMTAtNS0xMC01LTEwIDV6TTIgMTJsMTAgNSAxMC01LTEwLTUtMTAgNXoiIGZpbGw9IndoaXRlIi8+PC9zdmc+)](https://github.com/Deaksh/pqc-sandbox)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
-[![Zero Telemetry](https://img.shields.io/badge/telemetry-zero-brightgreen)](https://github.com/pqc-sandbox/pqc-sandbox)
+[![Zero Telemetry](https://img.shields.io/badge/telemetry-zero-brightgreen)](https://github.com/Deaksh/pqc-sandbox)
 
 ```
 🔒 Zero cloud. Zero telemetry. Runs entirely on your machine.
@@ -379,7 +379,7 @@ Enterprise security teams: every byte this tool processes stays on your machine.
 ## Contributing
 
 ```bash
-git clone https://github.com/pqc-sandbox/pqc-sandbox
+git clone https://github.com/Deaksh/pqc-sandbox
 cd pqc-sandbox
 pip install -e ".[dev]"
 python -m pytest tests/ -v
