@@ -103,10 +103,15 @@ _SCAN_EXTENSIONS = {
     '.tf', '.hcl',   # Terraform
 }
 
-_SKIP_PATTERNS = {
+_SKIP_DIRS = {
     'node_modules', '.git', 'vendor', '__pycache__', '.venv',
-    'dist', 'build', '.next', 'coverage', 'test_',
+    'dist', 'build', '.next', 'coverage',
 }
+
+def _should_skip(filepath: str) -> bool:
+    """Skip files inside known non-application directories."""
+    parts = filepath.replace("\\", "/").split("/")
+    return any(p in _SKIP_DIRS for p in parts)
 
 
 @dataclass
@@ -178,17 +183,14 @@ def _ref_exists(ref: str) -> bool:
     return r.returncode == 0
 
 
-def _get_changed_files(base_ref: str = "HEAD~1") -> tuple[list[str], str]:
+def _get_changed_files(base_ref: str = "HEAD~1") -> tuple[list[str], str, set[str]]:
     """
-    Return (list_of_changed_files, effective_base_ref).
-    Falls back gracefully when base_ref doesn't exist:
-      HEAD~1  → if only 1 commit, use empty tree (scans all tracked files)
-      <branch>  → if branch doesn't exist, use empty tree
+    Return (all_changed_files, effective_base_ref, staged_only_files).
+    staged_only_files: files that are staged but not yet committed (need --cached diff).
+    Falls back gracefully when base_ref doesn't exist.
     """
-    # Resolve fallback base
     effective = base_ref
     if not _ref_exists(base_ref):
-        # Use the empty git tree — diffs against "nothing", shows all added lines
         effective = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
     try:
@@ -196,28 +198,32 @@ def _get_changed_files(base_ref: str = "HEAD~1") -> tuple[list[str], str]:
             ["git", "diff", "--name-only", effective, "HEAD"],
             capture_output=True, text=True, timeout=30,
         )
-        files = [f.strip() for f in result.stdout.splitlines() if f.strip()]
+        committed_files = [f.strip() for f in result.stdout.splitlines() if f.strip()]
 
-        # Also include staged (cached) files not yet committed
         staged = subprocess.run(
             ["git", "diff", "--cached", "--name-only"],
             capture_output=True, text=True, timeout=30,
         )
         staged_files = [f.strip() for f in staged.stdout.splitlines() if f.strip()]
 
-        all_files = list(dict.fromkeys(files + staged_files))  # deduplicate, preserve order
-        return all_files, effective
+        # Files that are staged-only (not in committed diff) need --cached diff
+        staged_only = set(staged_files) - set(committed_files)
+        all_files = list(dict.fromkeys(committed_files + staged_files))
+        return all_files, effective, staged_only
     except Exception:
-        return [], effective
+        return [], effective, set()
 
 
-def _get_diff_lines(filepath: str, base_ref: str) -> list[tuple[int, str]]:
-    """Return (line_number, content) for lines ADDED in the diff."""
+def _get_diff_lines(filepath: str, base_ref: str, staged: bool = False) -> list[tuple[int, str]]:
+    """Return (line_number, content) for lines ADDED in the diff.
+    staged=True uses --cached to diff the index against HEAD (for uncommitted staged files).
+    """
     try:
-        result = subprocess.run(
-            ["git", "diff", base_ref, "HEAD", "--", filepath],
-            capture_output=True, text=True, timeout=30,
-        )
+        if staged:
+            cmd = ["git", "diff", "--cached", "HEAD", "--", filepath]
+        else:
+            cmd = ["git", "diff", base_ref, "HEAD", "--", filepath]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30,)
         added: list[tuple[int, str]] = []
         current_line = 0
         for line in result.stdout.splitlines():
@@ -257,7 +263,7 @@ def scan_pr(
                 continue
             if path.suffix.lower() not in _SCAN_EXTENSIONS:
                 continue
-            if any(skip in str(path) for skip in _SKIP_PATTERNS):
+            if _should_skip(str(path.relative_to(repo))):
                 continue
             try:
                 content = path.read_text(encoding="utf-8", errors="ignore")
@@ -273,7 +279,7 @@ def scan_pr(
         return result
 
     # PR mode: only scan changed files, only flag added lines
-    changed, effective_base = _get_changed_files(base_ref)
+    changed, effective_base, staged_only = _get_changed_files(base_ref)
     if not changed:
         result.error = (
             "No changed files detected. "
@@ -293,10 +299,11 @@ def scan_pr(
             continue
         if full_path.suffix.lower() not in _SCAN_EXTENSIONS:
             continue
-        if any(skip in filepath for skip in _SKIP_PATTERNS):
+        if _should_skip(filepath):
             continue
 
-        added_lines = _get_diff_lines(filepath, effective_base)
+        is_staged = filepath in staged_only
+        added_lines = _get_diff_lines(filepath, effective_base, staged=is_staged)
         result.files_scanned += 1
 
         for line_no, line_content in added_lines:
