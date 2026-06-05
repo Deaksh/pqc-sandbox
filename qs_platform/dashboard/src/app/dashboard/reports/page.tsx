@@ -64,10 +64,13 @@ export default function ReportsPage() {
   const [selected,   setSelected]     = useState<FrameworkEntry | null>(null);
   const [generating, setGenerating]   = useState(false);
   const [jurisdiction, setJurisdiction] = useState<string>("All");
+  const [apiError,   setApiError]     = useState(false);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"}/api/v1/reports/frameworks`)
-      .then(r => r.json()).then(setFrameworks).catch(() => {});
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setFrameworks)
+      .catch(() => setApiError(true));
     api.listReports().catch(() => []).then(setReports);
   }, []);
 
@@ -123,8 +126,15 @@ export default function ReportsPage() {
               <FrameworkCard key={fw.id} fw={fw} selected={selected?.id === fw.id} onClick={() => setSelected(fw)} />
             ))}
             {frameworks.length === 0 && (
-              <div className="col-span-2 text-center py-8 text-gray-400 text-sm">
-                Start the API server to load frameworks
+              <div className="col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-5 flex items-start gap-3">
+                <span className="text-amber-600 text-lg">⚠️</span>
+                <div>
+                  <p className="font-semibold text-amber-900 text-sm">API server not reachable</p>
+                  <p className="text-xs text-amber-800 mt-1">Start the backend to load compliance frameworks:</p>
+                  <pre className="mt-2 text-xs bg-amber-100 rounded px-2 py-1.5 text-amber-900 overflow-x-auto">
+                    uvicorn qs_platform.api.main:app --reload --port 8080
+                  </pre>
+                </div>
               </div>
             )}
           </div>
