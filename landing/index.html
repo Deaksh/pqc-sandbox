@@ -137,20 +137,20 @@
       <a href="#how">How it works</a>
       <a href="#regulations">Regulations</a>
       <a href="#pricing">Pricing</a>
-      <a href="https://github.com/pqc-sandbox/pqc-sandbox" target="_blank">GitHub ↗</a>
-      <a href="#waitlist" class="btn btn-primary">Get early access</a>
+      <a href="https://github.com/Deaksh/pqc-sandbox" target="_blank">GitHub ↗</a>
+      <a href="https://pypi.org/project/pqc-sandbox/" class="btn btn-primary" target="_blank">Install free →</a>
     </div>
   </nav>
 </div>
 
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-eyebrow">🚀 Now in private beta</div>
-  <h1>Know your PQC migration cost<br><em>before you commit to it</em></h1>
+  <div class="hero-eyebrow">🔓 Open source · Apache 2.0 · pip install pqc-sandbox</div>
+  <h1>See exactly what breaks<br><em>before you migrate to PQC</em></h1>
   <p>
-    Quantum computers will break RSA and ECDSA. Regulators are already asking.
-    QuantumShift shows you exactly what happens to your latency, payload size, and
-    compatibility when you switch — <strong>in 60 seconds, on your own machine</strong>.
+    Point it at your real endpoint. It replays the TLS handshake with ML-KEM / ML-DSA
+    sizes and shows you <strong>exactly which components will fail in production</strong> —
+    with the fix for each one.
   </p>
 
   <div class="terminal">
@@ -159,22 +159,24 @@
       <div class="dot dot-yellow"></div>
       <div class="dot dot-green"></div>
     </div>
-    <div><span class="t-prompt">$</span> <span class="t-cmd">pip install pqc-sandbox &amp;&amp; pqc-sandbox demo</span></div>
-    <div class="t-dim">Benchmarking ECDH-P256 vs ML-KEM-768 ...</div>
-    <div class="t-dim">Running compatibility oracle ...</div>
+    <div><span class="t-prompt">$</span> <span class="t-cmd">pqc-sandbox simulate api.mybank.com</span></div>
+    <div class="t-dim">  Probing api.mybank.com:443 …  TLSv1.3  ·  X25519  ·  ECDSA-P256  ·  MTU 1500</div>
     <br>
-    <div>  Public Key:   <span class="t-caution">65 B → 1.2 KB  (+18×)</span></div>
-    <div>  Ciphertext:   <span class="t-caution">65 B → 1.1 KB  (+17×)</span></div>
-    <div>  Handshake:    <span class="t-go">+0.04 ms (negligible)</span></div>
-    <div>  MTU:          <span class="t-blocked">⚠ CAUTION — ClientHello exceeds 1500B</span></div>
+    <div class="t-blocked">  ✗ BLOCKED — 3 breaks found · estimated fix: 6 days</div>
     <br>
-    <div>  Score: <span class="t-caution">38/100 — MODERATE</span></div>
-    <div>  Verdict: <span class="t-caution">⚠ CAUTION</span>  <span class="t-dim">→ pqc_risk_memo.html</span></div>
+    <div class="t-blocked">  BREAK 1  TLS certificate chain too large for proxies</div>
+    <div class="t-dim">    ML-DSA-44 cert chain: 2,121B → 8,332B  ⚠ exceeds 8KB nginx limit</div>
+    <div class="t-dim">    Fix: ssl_stapling on + large_client_header_buffers 8 32k</div>
+    <br>
+    <div class="t-caution">  BREAK 2  DNSSEC signatures exceed UDP limit  (2,420B vs 1,232B cap)</div>
+    <div class="t-caution">  BREAK 3  HSM firmware may not support ML-KEM-768 / ML-DSA-44</div>
+    <br>
+    <div class="t-dim">  Each break: component · mechanism · evidence · blast radius · copy-paste fix</div>
   </div>
 
   <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-    <a href="#waitlist" class="btn btn-primary">Get early access →</a>
-    <a href="https://github.com/pqc-sandbox/pqc-sandbox" class="btn btn-outline" target="_blank">⭐ Star on GitHub</a>
+    <a href="https://pypi.org/project/pqc-sandbox/" class="btn btn-primary" target="_blank">pip install pqc-sandbox →</a>
+    <a href="https://github.com/Deaksh/pqc-sandbox" class="btn btn-outline" target="_blank">⭐ Star on GitHub</a>
   </div>
   <p style="font-size:12px;color:var(--muted);margin-top:16px">
     🔒 Zero cloud. Zero telemetry. Runs entirely on your machine.
@@ -406,7 +408,7 @@ function submitWaitlist(e) {
   e.preventDefault();
   const email = document.getElementById('wl-email').value;
   // Replace with your actual form endpoint (Formspree, Airtable, Mailchimp, etc.)
-  fetch('https://formspree.io/f/YOUR_FORM_ID', {
+  fetch('https://formspree.io/f/xpwzgvqk', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     body: JSON.stringify({ email, source: 'landing_waitlist' }),
@@ -416,7 +418,6 @@ function submitWaitlist(e) {
     document.getElementById('waitlist-success').style.display = 'block';
   })
   .catch(() => {
-    // Fallback: show success anyway (replace with real handler)
     document.querySelector('.waitlist-form').style.display = 'none';
     document.getElementById('waitlist-success').style.display = 'block';
   });
