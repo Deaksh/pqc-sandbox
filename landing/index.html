@@ -136,7 +136,7 @@
     <div class="nav-links">
       <a href="#how">How it works</a>
       <a href="#regulations">Regulations</a>
-      <a href="#pricing">Pricing</a>
+      <a href="#pricing">Team plan</a>
       <a href="https://github.com/Deaksh/pqc-sandbox" target="_blank">GitHub ↗</a>
       <a href="https://pypi.org/project/pqc-sandbox/" class="btn btn-primary" target="_blank">Install free →</a>
     </div>
@@ -322,70 +322,55 @@ GODEBUG=tlsmlkem=1 ./your-binary</pre>
 <!-- PRICING -->
 <section id="pricing">
   <div class="section-label">Pricing</div>
-  <div class="section-title">Start free. Scale when you need to.</div>
-  <div class="pricing-grid">
-    <div class="pricing-card">
-      <div class="pricing-name">Open Source</div>
+  <div class="section-title">Free for engineers. Team platform coming soon.</div>
+  <div style="max-width:680px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+    <div class="pricing-card" style="border-color:var(--brand);background:#f0f4ff">
+      <div class="pricing-name">Open Source CLI</div>
       <div class="price">Free<sub> forever</sub></div>
-      <div class="pricing-desc">For individual engineers. CLI tool, MIT licensed.</div>
+      <div class="pricing-desc">Everything you need to simulate your own migration.</div>
       <ul class="pricing-features">
-        <li><span class="check">✓</span> Single-asset benchmark + compat check</li>
-        <li><span class="check">✓</span> Executive risk memo (HTML)</li>
-        <li><span class="check">✓</span> Config diffs (OpenSSL, nginx, Go, Python)</li>
-        <li><span class="check">✓</span> CBOM / SARIF input</li>
-        <li><span class="check">✓</span> Zero telemetry, fully local</li>
+        <li><span class="check">✓</span> <code>pqc-sandbox simulate &lt;endpoint&gt;</code></li>
+        <li><span class="check">✓</span> Breakage proof + fix for each issue</li>
+        <li><span class="check">✓</span> Config diffs (nginx, OpenSSL, Go, Python)</li>
+        <li><span class="check">✓</span> PR gate — blocks vulnerable crypto in CI</li>
+        <li><span class="check">✓</span> Zero telemetry · runs on your machine</li>
+        <li><span class="check">✓</span> Apache 2.0 — audit everything</li>
       </ul>
-      <a href="https://github.com/pqc-sandbox/pqc-sandbox" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:16px">View on GitHub →</a>
-    </div>
-
-    <div class="pricing-card featured">
-      <div class="badge">Most popular</div>
-      <div class="pricing-name">Team</div>
-      <div class="price">₹4,999<sub>/mo</sub></div>
-      <div class="pricing-desc">For security teams at startups and mid-market.</div>
-      <ul class="pricing-features">
-        <li><span class="check">✓</span> Everything in Open Source</li>
-        <li><span class="check">✓</span> Up to 50 assets</li>
-        <li><span class="check">✓</span> Compliance reports (RBI, SEBI, NIST)</li>
-        <li><span class="check">✓</span> Team dashboard with per-team views</li>
-        <li><span class="check">✓</span> Drift alerts (new vulnerable crypto in PRs)</li>
-        <li><span class="check">✓</span> 5 user seats</li>
-      </ul>
-      <a href="#waitlist" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:16px">Get early access →</a>
+      <a href="https://github.com/Deaksh/pqc-sandbox" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:16px" target="_blank">⭐ View on GitHub →</a>
     </div>
 
     <div class="pricing-card">
-      <div class="pricing-name">Enterprise</div>
-      <div class="price">Custom</div>
-      <div class="pricing-desc">For banks, NBFCs, and large tech companies.</div>
+      <div class="pricing-name">Team Platform</div>
+      <div class="price" style="font-size:22px;margin-top:14px">Coming soon</div>
+      <div class="pricing-desc">For security teams managing org-wide PQC migration.</div>
       <ul class="pricing-features">
-        <li><span class="check">✓</span> Unlimited assets</li>
-        <li><span class="check">✓</span> All regulatory frameworks</li>
-        <li><span class="check">✓</span> SSO (SAML / OIDC)</li>
-        <li><span class="check">✓</span> On-premises deployment</li>
-        <li><span class="check">✓</span> Dedicated migration support</li>
-        <li><span class="check">✓</span> Custom report templates</li>
+        <li><span style="color:var(--muted)">○</span> All endpoints monitored continuously</li>
+        <li><span style="color:var(--muted)">○</span> Remediation tracking + owner assignment</li>
+        <li><span style="color:var(--muted)">○</span> Org-wide PR gate across all repos</li>
+        <li><span style="color:var(--muted)">○</span> Auto-discovery (CT logs, AWS ACM, DNS)</li>
+        <li><span style="color:var(--muted)">○</span> Compliance export (RBI, DORA, NIST)</li>
+        <li><span style="color:var(--muted)">○</span> SSO + team management</li>
       </ul>
-      <a href="mailto:hello@quantumshift.io" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:16px">Contact us →</a>
+      <a href="#notify" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:16px">Get notified →</a>
     </div>
+
   </div>
 </section>
 
-<!-- WAITLIST -->
-<section id="waitlist" style="padding-bottom:80px">
+<!-- NOTIFY -->
+<section id="notify" style="padding-bottom:80px">
   <div class="waitlist-box">
-    <div class="waitlist-count">🔥 73 security teams on the waitlist</div>
-    <h2>Get early access</h2>
-    <p>We're onboarding teams in batches. Drop your email and we'll reach out within 48 hours with a private beta invite.</p>
+    <h2>Stay in the loop</h2>
+    <p>We'll email you when the team platform launches — and when there are breaking changes to the CLI you should know about.</p>
     <form class="waitlist-form" onsubmit="submitWaitlist(event)">
       <input type="email" id="wl-email" placeholder="you@yourcompany.com" required>
-      <button type="submit">Join waitlist</button>
+      <button type="submit">Notify me</button>
     </form>
-    <div id="waitlist-success">✓ You're on the list! We'll be in touch shortly.</div>
+    <div id="waitlist-success">✓ Done. We'll be in touch.</div>
     <div class="waitlist-social">
-      Also: <a href="https://www.linkedin.com/company/quantumshift-io" style="color:rgba(255,255,255,.6)">LinkedIn</a> ·
-      <a href="https://twitter.com/quantumshiftio" style="color:rgba(255,255,255,.6)">Twitter/X</a> ·
-      <a href="https://github.com/pqc-sandbox/pqc-sandbox" style="color:rgba(255,255,255,.6)">GitHub ⭐</a>
+      <a href="https://github.com/Deaksh/pqc-sandbox" style="color:rgba(255,255,255,.6)">GitHub ⭐</a> ·
+      <a href="https://pypi.org/project/pqc-sandbox/" style="color:rgba(255,255,255,.6)">PyPI</a>
     </div>
   </div>
 </section>
