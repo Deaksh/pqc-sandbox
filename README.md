@@ -1,395 +1,234 @@
 # pqc-sandbox
 
-**See exactly what happens to your latency, payload size, CPU, and compatibility when you switch to ML-KEM / ML-DSA / SLH-DSA — in 60 seconds, without changing a line of production code.**
+**See exactly what breaks when you migrate to post-quantum cryptography — before you migrate.**
 
-[![PQC Migration: MODERATE](https://img.shields.io/badge/PQC%20Migration-MODERATE-yellow?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDJMMiA3bDEwIDUgMTAtNS0xMC01ek0yIDE3bDEwIDUgMTAtNS0xMC01LTEwIDV6TTIgMTJsMTAgNSAxMC01LTEwLTUtMTAgNXoiIGZpbGw9IndoaXRlIi8+PC9zdmc+)](https://github.com/Deaksh/pqc-sandbox)
+[![PyPI version](https://img.shields.io/pypi/v/pqc-sandbox)](https://pypi.org/project/pqc-sandbox/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
 [![Zero Telemetry](https://img.shields.io/badge/telemetry-zero-brightgreen)](https://github.com/Deaksh/pqc-sandbox)
 
-```
-🔒 Zero cloud. Zero telemetry. Runs entirely on your machine.
-```
+---
+
+## The problem
+
+You've been told to migrate to post-quantum cryptography (ML-KEM, ML-DSA — NIST FIPS 203/204). You can't find out what breaks without trying it in production. So you're not trying it.
+
+pqc-sandbox solves this: **simulate the migration on your real endpoints, get the exact list of what will fail and why, before touching a single config file.**
 
 ---
 
-## The 60-second demo
+## Try it now
 
 ```bash
 pip install pqc-sandbox
-pqc-sandbox demo
+pqc-sandbox simulate your-api.com
 ```
 
-> **No NIST keys. No API calls. No account required.**
-> All analysis is local. All benchmarks run on your hardware.
+Output on a real endpoint:
 
-The demo simulates migrating a web API server from ECDSA-P256 → ML-DSA-44 (NIST FIPS 204) and ECDH-P256 → ML-KEM-768 (NIST FIPS 203), showing you the real cost before you touch a single config file.
+```
+Probing api.example.com:443 …
+
+  Current TLS    TLSv1.3
+  Current KEM    X25519
+  Cert sig       ECDSA-P256
+  Cert chain     2,121 bytes (estimated)
+  Path MTU       1,500 bytes
+  Migrating to   X25519+ML-KEM-768  +  ML-DSA-44
+
+╭─────────────────────────────────────────────────────────────────────╮
+│ ✗ BLOCKED — 3 breaks found (1 BLOCKED  2 CAUTION) · effort: 6 days │
+╰─────────────────────────────────────────────────────────────────────╯
+
+── BLOCKED 1/3  TLS certificate chain too large for proxies ──────────
+
+  Component:   TLS certificate chain / reverse proxy / API gateway
+
+  Why this breaks:
+    ML-DSA-44 signatures are 2,420B (33× larger than ECDSA-P256's 72B).
+    A 2-cert chain grows from ~2,121B → 8,332B.
+    This exceeds the 8KB limit enforced by nginx, AWS ALB, and most proxies.
+
+  Evidence:
+    Current cert chain:    2,121 bytes
+    PQC leaf cert:         4,166 bytes
+    PQC intermediate:      4,166 bytes
+    2-cert chain total:    8,332 bytes  ⚠ EXCEEDS 8KB proxy limit
+
+  Blast radius:
+    • nginx / Apache with default large_client_header_buffers
+    • AWS ALB — 8KB TLS record limit for certificate chain
+    • Cloudflare — rejects cert chains > 16KB
+    • Corporate proxies doing TLS inspection
+
+  Fix  (2–4 hours)
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    large_client_header_buffers 8 32k;
+
+── CAUTION 2/3  DNSSEC signatures exceed UDP packet limit ────────────
+── CAUTION 3/3  HSM may not support ML-KEM / ML-DSA ─────────────────
+
+All size measurements use NIST FIPS 203/204 final parameters.
+```
+
+Not warnings. Not a score. **Exact components, exact sizes, exact fixes.**
 
 ---
 
-## What it does
+## What it finds
 
-pqc-sandbox is **the missing second half of the PQC migration toolchain**. Crypto discovery tools (Semgrep, CodeQL, Cryptosense) tell you _what_ to change. pqc-sandbox tells you **what happens when you do**.
+| Check | What breaks | Example |
+|---|---|---|
+| **ClientHello fragmentation** | Load balancer drops fragmented TLS handshakes | ML-KEM-768 key share = 1,184B → ClientHello exceeds 1,500B MTU |
+| **Certificate chain size** | Proxy header limits | ML-DSA-44 cert chain = 8.3KB, nginx limit = 8KB |
+| **TLS version** | TLS 1.2 can't carry hybrid PQC key shares | Hybrid X25519+ML-KEM requires TLS 1.3 |
+| **DNSSEC** | DNS responses fragment / resolvers drop them | ML-DSA-44 sig = 2,420B, EDNS0 UDP limit = 1,232B |
+| **JWT / HTTP headers** | Auth tokens overflow API gateway limits | PQC sig → 3,228B base64 → Authorization header > 8KB |
+| **HSM firmware** | Hardware can't generate/verify PQC keys | Most HSMs shipped before 2024 don't support ML-KEM |
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Discovery tools (CBOM/SARIF)        pqc-sandbox                    │
-│  ─────────────────────────  ──────────────────────────────────────  │
-│  "You use ECDSA-P256 here"  → "Here's what ML-DSA-44 costs you:   │
-│                                  +33× signature size                │
-│                                  +1.8× signing time                 │
-│                                  CAUTION: cert spans 2 MTU packets  │
-│                                  Score: MODERATE (38/100)"          │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Core output per migration
-
-| Output | Description |
-|--------|-------------|
-| **Benchmark table** | Side-by-side latency, key sizes, artifact sizes: classical vs. PQC |
-| **Hybrid simulation** | Classical + PQC in tandem — the recommended transitional approach |
-| **Compatibility oracle** | Flags what will break: MTU limits, TLS version, RAM, DNSSEC, JWTs, HSMs |
-| **Migration Difficulty Score** | 0–100, badge-ready: `EASY / MODERATE / HARD / CRITICAL` |
-| **Config diff** | Copy-paste ready: OpenSSL, nginx, sshd, Go TLS, Python |
-| **HTML report** | Self-contained, screenshot-friendly, shareable |
-| **JSON output** | CI/CD pipeline integration with exit codes |
+For every break: **the component, the mechanism, the measured evidence, the blast radius, and the copy-paste fix.**
 
 ---
 
 ## Installation
 
 ```bash
-# Basic (simulation mode — no native deps)
 pip install pqc-sandbox
+```
 
-# With real benchmarks via liboqs
+No system dependencies. No API keys. No account required. Runs entirely on your machine.
+
+### With real NIST reference implementations (optional)
+
+```bash
 pip install pqc-sandbox[oqs]
-# Requires liboqs to be installed: https://github.com/open-quantum-safe/liboqs
-```
-
-### liboqs (optional but recommended)
-
-When `liboqs-python` is installed, pqc-sandbox runs **real NIST reference implementations** instead of simulated timings. In simulation mode, timings are derived from published NIST benchmarks with ±5% jitter — accurate for planning, but not a substitute for hardware measurement.
-
-```bash
-# macOS
-brew install liboqs
-pip install liboqs-python
-
-# Ubuntu/Debian
-sudo apt-get install liboqs-dev
-pip install liboqs-python
+# Requires liboqs: https://github.com/open-quantum-safe/liboqs
 ```
 
 ---
 
-## Usage
+## Commands
 
-### `pqc-sandbox demo` — Start here
+### `simulate` — the flagship
 
 ```bash
-# Default: web API server scenario (ECDH-P256 → ML-KEM-768, ECDSA-P256 → ML-DSA-44)
-pqc-sandbox demo
+# Simulate PQC migration on a live endpoint
+pqc-sandbox simulate api.yourcompany.com
 
-# IoT device with 256 KB RAM
-pqc-sandbox demo --scenario 1
+# Specific port, different algorithms
+pqc-sandbox simulate api.yourcompany.com --port 8443 --kem ML-KEM-1024 --sig ML-DSA-65
 
-# Legacy TLS 1.2 endpoint
-pqc-sandbox demo --scenario 2
+# JSON output for CI/CD (exit 0=GO, 1=CAUTION, 2=BLOCKED)
+pqc-sandbox simulate api.yourcompany.com --json --ci
 
-# Save reports
-pqc-sandbox demo --html report.html --json report.json
+# Save HTML report
+pqc-sandbox simulate api.yourcompany.com --out migration-report.html
 ```
 
-### `pqc-sandbox compare` — Compare any two algorithms
+### `demo` — 60-second overview
 
 ```bash
-# Auto-select PQC replacement
-pqc-sandbox compare --classical "ECDH-P256"
-
-# Explicit pairing
-pqc-sandbox compare --classical "ECDSA-P256" --pqc "ML-DSA-65"
-
-# With system constraints
-pqc-sandbox compare \
-  --classical "ECDSA-P256" --pqc "ML-DSA-44" \
-  --mtu 1500 \
-  --tls-version 1.3 \
-  --protocol tls \
-  --ram-kb 256 \
-  --tag embedded --tag iot
-
-# Generate all outputs
-pqc-sandbox compare \
-  --classical "ECDH-P256" --pqc "ML-KEM-768" \
-  --html report.html \
-  --json report.json \
-  --diff openssl.conf.patch \
-  --diff-format openssl
-
-# CI/CD mode (exit code: 0=GO, 1=CAUTION, 2=BLOCKED)
-pqc-sandbox compare --classical "ECDH-P256" --ci
+pqc-sandbox demo                    # web API scenario
+pqc-sandbox demo --scenario 1       # IoT / embedded device (256KB RAM)
+pqc-sandbox demo --scenario 2       # legacy TLS 1.2 endpoint
 ```
 
-### `pqc-sandbox scan tls` — Probe a live endpoint
+### `compare` — algorithm-level benchmark
 
 ```bash
-# Detect current algorithms and simulate migration
-pqc-sandbox scan tls example.com
-pqc-sandbox scan tls api.mycompany.com --port 8443 --html tls_report.html
+pqc-sandbox compare --classical ECDSA-P256          # auto-selects ML-DSA-44
+pqc-sandbox compare --classical ECDH-P256 --pqc ML-KEM-768 --mtu 1500
+pqc-sandbox compare --classical RSA-2048 --ci       # CI/CD mode
 ```
 
-### `pqc-sandbox scan cbom` — Integrate with CBOM scanners
+### `scan git` — CI/CD gate for PRs
 
 ```bash
-# Accept CycloneDX CBOM JSON (from Dependency-Track, Cryptosense, etc.)
-pqc-sandbox scan cbom cryptographic-bill-of-materials.json
-
-# Sample CBOM included
-pqc-sandbox scan cbom assets/sample.cbom.json
+# Block PRs that introduce RSA/ECDSA/ECDH patterns
+pqc-sandbox scan git --base main --ci
+# exit 2 if BLOCKED, posts a PR comment explaining what was found
 ```
 
-### `pqc-sandbox scan sarif` — Integrate with SARIF crypto scanners
+Drop-in GitHub Action in `pqc_sandbox/integrations/github_action_template.yml`.
+
+### Other commands
 
 ```bash
-# Accept SARIF 2.1.0 output (from Semgrep, CodeQL, etc.)
-pqc-sandbox scan sarif crypto-findings.sarif
-
-# Sample SARIF included
-pqc-sandbox scan sarif assets/sample.sarif.json
-```
-
-### `pqc-sandbox diff` — Config diff only
-
-```bash
-pqc-sandbox diff --classical "ECDH-P256" --format nginx
-pqc-sandbox diff --classical "ECDSA-P256" --pqc "ML-DSA-65" --format go-tls
-pqc-sandbox diff --classical "ECDH-P256" --format sshd --output sshd_config.patch
-```
-
-Supported formats: `openssl`, `nginx`, `sshd`, `go-tls`, `python`
-
-### `pqc-sandbox badge` — Generate README badge
-
-```bash
-pqc-sandbox badge --classical "ECDSA-P256"
-# Output:
-#   Score: 38/100 — MODERATE
-#   ![PQC Migration: MODERATE](https://img.shields.io/...)
-```
-
-### `pqc-sandbox list` — Show all algorithms
-
-```bash
-pqc-sandbox list
-pqc-sandbox list --pqc-only
-pqc-sandbox list --classical-only --category kem
+pqc-sandbox diff --classical ECDH-P256 --format nginx   # config diff
+pqc-sandbox scan tls example.com                        # probe live endpoint
+pqc-sandbox scan cbom cryptographic-bom.json            # CycloneDX CBOM input
+pqc-sandbox scan sarif crypto-findings.sarif            # SARIF 2.1.0 input
+pqc-sandbox badge --classical ECDSA-P256                # README badge
+pqc-sandbox list                                        # all 17 algorithms
 ```
 
 ---
 
-## Supported algorithms
+## The size problem
 
-### PQC (NIST standards)
-
-| Algorithm | Standard | Category | Security Level |
-|-----------|----------|----------|----------------|
-| ML-KEM-512 | NIST FIPS 203 | KEM | 1 |
-| **ML-KEM-768** ⭐ | NIST FIPS 203 | KEM | 3 |
-| ML-KEM-1024 | NIST FIPS 203 | KEM | 5 |
-| ML-DSA-44 | NIST FIPS 204 | Signature | 2 |
-| **ML-DSA-65** ⭐ | NIST FIPS 204 | Signature | 3 |
-| ML-DSA-87 | NIST FIPS 204 | Signature | 5 |
-| SLH-DSA-SHA2-128s | NIST FIPS 205 | Signature | 1 |
-| SLH-DSA-SHA2-128f | NIST FIPS 205 | Signature | 1 |
-| SLH-DSA-SHA2-256s | NIST FIPS 205 | Signature | 5 |
-
-⭐ = recommended for most deployments
-
-### Classical (for comparison)
-
-ECDH-P256, ECDH-P384, RSA-2048, ECDSA-P256, ECDSA-P384, RSA-2048 PKCS#1 v1.5, RSA-4096 PKCS#1 v1.5, Ed25519
-
----
-
-## The size problem (why this tool exists)
-
-The PQC migration is not like past algorithm transitions. The size increases are **structural**:
+This migration is different from past algorithm transitions. The size increases are **structural** — they break infrastructure, not just slow it down:
 
 ```
-                  Public key    Signature/Ciphertext
-ECDSA-P256        65 B          72 B
-ML-DSA-44         1,312 B       2,420 B       ← 33× larger
-ML-DSA-65         1,952 B       3,293 B       ← 45× larger
-SLH-DSA-SHA2-128s 32 B          7,856 B       ← 109× larger
-SLH-DSA-SHA2-256s 64 B          29,792 B      ← 413× larger
+                    Public key    Signature / Ciphertext
+ECDSA-P256          65 B          72 B
+ML-DSA-44        1,312 B       2,420 B    ← 33× larger
+ML-DSA-65        1,952 B       3,293 B    ← 45× larger
+SLH-DSA-128s        32 B       7,856 B    ← 109× larger
 
-ECDH-P256 ciphertext:  65 B
-ML-KEM-768 ciphertext: 1,088 B                ← 17× larger
+ECDH-P256 key share:    32 B
+ML-KEM-768 key share: 1,184 B             ← 37× larger
 ```
 
-A TLS handshake that fit in a single 1500-byte MTU packet will **fragment**. DNSSEC records that fit in a single UDP packet will **require TCP fallback**. JWT tokens will **overflow HTTP header limits**. pqc-sandbox finds these issues before they find you in production.
-
----
-
-## Compatibility oracle checks
-
-| Category | What's checked |
-|----------|---------------|
-| **MTU / fragmentation** | Does the ML-KEM ClientHello + TLS overhead exceed your MTU? |
-| **TLS version** | TLS 1.0/1.1 cannot support hybrid PQC key exchange |
-| **Memory (embedded)** | Does your RAM support SLH-DSA's ~256 KB stack requirement? |
-| **DNSSEC** | ML-DSA signatures exceed DNS UDP limits — TCP fallback required |
-| **JWT / HTTP** | Large PQC signatures overflow default header size limits |
-| **CMS / S/MIME** | Parser buffer limits for large PQC-signed content |
-| **HSM support** | HSMs typically lag 12-24 months — flags if vendor support is unclear |
-| **Legacy TLS stacks** | OpenSSL < 3.x has no PQC support |
-
----
-
-## CI/CD integration
-
-```yaml
-# GitHub Actions example
-- name: PQC Migration Check
-  run: |
-    pip install pqc-sandbox
-    pqc-sandbox compare \
-      --classical "ECDH-P256" \
-      --pqc "ML-KEM-768" \
-      --json pqc-report.json \
-      --ci   # exit 1 on CAUTION, exit 2 on BLOCKED
-
-- name: Upload PQC Report
-  uses: actions/upload-artifact@v3
-  with:
-    name: pqc-migration-report
-    path: pqc-report.json
-```
-
-The JSON output includes a `ci.exit_code` field:
-- `0` = GO (migration looks clean)
-- `1` = CAUTION (issues to review, but not blocking)
-- `2` = BLOCKED (hard blockers detected)
+A TLS ClientHello that fits in one 1,500B MTU packet will fragment. DNSSEC responses will require TCP fallback. JWT tokens will overflow HTTP header limits. `pqc-sandbox simulate` finds these before they find you in production.
 
 ---
 
 ## Using as a library
 
 ```python
-from pqc_sandbox.benchmarks import run_comparison
-from pqc_sandbox.compat import run_compat_check, SystemConstraints
-from pqc_sandbox.hybrid import simulate_hybrid
-from pqc_sandbox.scoring import compute_score
-from pqc_sandbox.algorithms import ALL_ALGORITHMS
-from pqc_sandbox.report import print_report, generate_html, generate_json
+from pqc_sandbox.simulation import simulate_endpoint
 
-# Benchmark comparison
-cmp = run_comparison("ECDH-P256", "ML-KEM-768", iterations=100)
-print(f"Ciphertext size ratio: {cmp.artifact_ratio:.1f}×")
-print(f"KeyGen slowdown: {cmp.keygen_slowdown:.1f}×")
+report = simulate_endpoint("api.yourcompany.com", port=443)
 
-# Compatibility check
-constraints = SystemConstraints(
-    mtu_bytes=1500,
-    tls_version="1.3",
-    ram_kb=None,         # unconstrained
-    protocol="tls",
-    tags=["hsm"],
-)
-compat = run_compat_check(ALL_ALGORITHMS["ML-KEM-768"], constraints)
-print(f"Verdict: {compat.verdict}")
-for issue in compat.issues:
-    print(f"  {issue.severity.value}: {issue.title}")
-
-# Hybrid simulation
-hybrid = simulate_hybrid("ECDH-P256", "ML-KEM-768")
-print(f"Hybrid wire overhead: +{hybrid.wire_overhead_bytes:,} bytes")
-
-# Migration difficulty score
-score = compute_score(comparison=cmp, compat=compat, hybrid=hybrid)
-print(f"Migration difficulty: {score.score}/100 ({score.label})")
-print(f"Badge: {score.badge_markdown}")
-
-# Generate reports
-generate_html(cmp, compat, hybrid, score, output_path="report.html")
-generate_json(cmp, compat, hybrid, score, output_path="report.json")
+print(f"Verdict: {report.verdict}")   # BLOCKED / CAUTION / GO
+for break_ in report.breaks:
+    print(f"\n{break_.severity.value}: {break_.title}")
+    print(f"  Component:  {break_.component}")
+    print(f"  Evidence:   {break_.evidence}")
+    print(f"  Fix:        {break_.fix[:80]}...")
 ```
 
 ---
 
-## Architecture
+## CI/CD integration
 
-```
-pqc_sandbox/
-├── algorithms.py          # Algorithm catalogue: sizes, perf baselines, migration map
-├── cli.py                 # Click CLI (demo, compare, scan, list, diff, badge)
-├── scoring.py             # Migration Difficulty Score (0-100) + badge generator
-├── benchmarks/
-│   └── runner.py          # liboqs runner + NIST-baseline simulation fallback
-├── compat/
-│   └── oracle.py          # Compatibility checks: MTU, TLS version, RAM, protocol
-├── hybrid/
-│   └── simulator.py       # Hybrid (classical+PQC) key exchange simulation
-├── inputs/
-│   ├── tls_probe.py       # Live TLS endpoint probing via stdlib ssl
-│   ├── cbom.py            # CycloneDX CBOM parser
-│   └── sarif.py           # SARIF 2.1.0 parser
-├── report/
-│   ├── terminal.py        # Rich terminal renderer
-│   ├── html_gen.py        # Self-contained HTML report (no CDN)
-│   ├── json_out.py        # JSON output for CI/CD
-│   └── config_diff.py     # Copy-paste config diffs (OpenSSL, nginx, sshd, Go, Python)
-└── demo/
-    └── runner.py          # 60-second bundled demo scenarios
+```yaml
+# .github/workflows/pqc-check.yml
+- name: PQC migration dry-run
+  run: |
+    pip install pqc-sandbox
+    pqc-sandbox simulate ${{ env.API_ENDPOINT }} --json --ci
+    # exits 2 (BLOCKED) if migration would break production
 ```
 
-**Dependencies:** `click`, `rich`, `psutil`, `cryptography`, `jinja2`, `requests`
-**Optional:** `liboqs-python` (for real NIST reference implementation benchmarks)
+Or scan PRs for newly introduced vulnerable crypto:
 
----
-
-## Out of scope (by design)
-
-pqc-sandbox does **not** scan your codebase for crypto usage — excellent tools already do that:
-
-- [Semgrep crypto rules](https://semgrep.dev/p/cryptography)
-- [CodeQL crypto queries](https://codeql.github.com/)
-- [Cryptosense Analyzer](https://cryptosense.com/)
-- [IBM CBOM tools](https://github.com/IBM/cbomkit)
-
-Feed their CBOM or SARIF output directly to `pqc-sandbox scan cbom` / `pqc-sandbox scan sarif`.
+```yaml
+- name: Scan PR for vulnerable crypto
+  run: pqc-sandbox scan git --base ${{ github.base_ref }} --ci
+```
 
 ---
 
 ## Privacy & trust
 
 ```
-🔒 ZERO CLOUD  —  All benchmarks run on your hardware.
-🔒 ZERO TELEMETRY  —  No data leaves your machine. Ever.
-🔒 ZERO ACCOUNTS  —  No sign-up, no API keys.
-🔒 OPEN SOURCE  —  Apache 2.0. Audit everything.
+Zero cloud   — all analysis runs on your hardware
+Zero telemetry — no data leaves your machine
+Zero accounts  — no sign-up, no API keys
+Open source    — Apache 2.0, audit everything
 ```
-
-Enterprise security teams: every byte this tool processes stays on your machine. The HTML report is generated locally from an embedded template — no external stylesheets, no CDN, no fonts loaded from the internet.
-
----
-
-## Contributing
-
-```bash
-git clone https://github.com/Deaksh/pqc-sandbox
-cd pqc-sandbox
-pip install -e ".[dev]"
-python -m pytest tests/ -v
-```
-
-Pull requests welcome. Priority areas:
-- Real liboqs integration tests (need liboqs installed in CI)
-- Additional protocol compat checks (WireGuard, Signal Protocol, S/MIME)
-- More config diff formats (HAProxy, Apache, Kubernetes TLS secrets)
-- Hardware benchmark profiles (ARM Cortex-M, RISC-V, Apple Silicon)
 
 ---
 
@@ -399,9 +238,7 @@ Pull requests welcome. Priority areas:
 - [NIST FIPS 204 — ML-DSA](https://csrc.nist.gov/pubs/fips/204/final)
 - [NIST FIPS 205 — SLH-DSA](https://csrc.nist.gov/pubs/fips/205/final)
 - [Open Quantum Safe (liboqs)](https://openquantumsafe.org/)
-- [IETF TLS Hybrid Key Exchange (draft-ietf-tls-hybrid-design)](https://datatracker.ietf.org/doc/draft-ietf-tls-hybrid-design/)
-- [CNSA 2.0 — NSA Commercial National Security Algorithm Suite 2.0](https://media.defense.gov/2022/Sep/07/2003071834/-1/-1/0/CSA_CNSA_2.0_ALGORITHMS_.PDF)
-- [CycloneDX CBOM specification](https://cyclonedx.org/capabilities/cbom/)
+- [IETF TLS Hybrid Key Exchange](https://datatracker.ietf.org/doc/draft-ietf-tls-hybrid-design/)
 
 ---
 
