@@ -408,7 +408,7 @@ function submitWaitlist(e) {
   e.preventDefault();
   const email = document.getElementById('wl-email').value;
   // Replace with your actual form endpoint (Formspree, Airtable, Mailchimp, etc.)
-  fetch('https://formspree.io/f/xpwzgvqk', {
+  fetch('https://formspree.io/f/xaqzqaeb', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     body: JSON.stringify({ email, source: 'landing_waitlist' }),
